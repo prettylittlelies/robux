@@ -32,6 +32,18 @@ class RobloxAPI:
                 filtered_games = [game for game in games if game['creator']['id'] == uid]
                 return filtered_games[0] if filtered_games else None
 
+    async def getGroupExperiences(self, uid: int):
+        """
+        Get an user exeprinces.
+        """
+        url = f'https://games.roblox.com/v2/groups/{uid}/games?accessFilter=2&limit=10&sortOrder=Asc'
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                data = await response.json()
+                games = data['data']
+                filtered_games = [game for game in games if game['creator']['id'] == uid]
+                return filtered_games[0] if filtered_games else None
+
     async def get_csrf_token(self):
         """
         Get the CSRF token from the Roblox website.
@@ -155,7 +167,35 @@ async def setcookie(ctx, cookie: str):
     except Exception as e:
         await ctx.send(f'Error setting cookie: {str(e)}')
 
-@bot.command()
+@bot.command(aliases=['cg'])
+async def creategroup(ctx, guid: int, price: int, name: str):
+    """
+    Create a gamepass with the given price and name.
+    """
+    message = await ctx.reply('> Initializing...')
+    auth = await RobloxAPI('cookie.txt').user_auth()
+    useridentification = auth['id']
+    if useridentification:
+        Logger.log(f'Logged in as: {useridentification}', 'INFO')
+    if useridentification:
+        data = await RobloxAPI('cookie.txt').getGroupExperiences(guid)
+        # Logger.log(data, 'INFO')
+        if data:
+            game_id = data['id']
+            gamepass = await RobloxAPI('cookie.txt').CreateGamepass(game_id=game_id, name=name, description="heh...")
+            if gamepass:
+                gamepass_id = gamepass['gamePassId']
+                await message.edit(content=f'> Created gamepass with name {name} and id {gamepass_id}')
+                setPrice = await RobloxAPI('cookie.txt').SetGamepassPrice(gamepass_id=gamepass_id, price=price)
+                if setPrice:
+                    await message.edit(content=f'> Set price for gamepass to {price}')
+                    await message.edit(content=f'> https://www.roblox.com/game-pass/{gamepass_id}')
+        else:
+            await message.edit(content='> No experiences found for user.')
+    else:
+        await message.edit(content='> Improper cookie passed')
+
+@bot.command(aliases=['c'])
 async def create(ctx, price: int, name: str):
     """
     Create a gamepass with the given price and name.
@@ -189,8 +229,43 @@ async def createmultiple(ctx, price: int, name: str, amount: int):
     message = await ctx.reply('> Initializing...')
     auth = await RobloxAPI('cookie.txt').user_auth()
     uid = auth['id']
-    if uid:
+    useridentification = auth['id']
+    if useridentification:
+        Logger.log(f'Logged in as: {useridentification}', 'INFO')
+    if useridentification:
         data = await RobloxAPI('cookie.txt').get_user_experiences(uid)
+        # Logger.log(data, 'INFO')
+        if data:
+            game_id = data['id']
+            gamepasses = []
+            for i in range(1, amount+1):
+                price += 100
+                gamepass = await RobloxAPI('cookie.txt').CreateGamepass(game_id=game_id, name=name, description="heh...")
+                if gamepass:
+                    gamepass_id = gamepass['gamePassId']
+                    await message.edit(content=f'> Created gamepass with name {name} and id {gamepass_id}')
+                    setPrice = await RobloxAPI('cookie.txt').SetGamepassPrice(gamepass_id=gamepass_id, price=price)
+                    if setPrice:
+                        await message.edit(content=f'> Set price for gamepass to {price}')
+                        await message.edit(content=f'> https://www.roblox.com/game-pass/{gamepass_id}')
+                        gamepasses.append(gamepass_id)
+            gamepass_links = [f"https://www.roblox.com/game-pass/{gp}" for gp in gamepasses]
+            await message.edit(content=f'> List of gamepasses created:\n' + '\n'.join(gamepass_links))
+        else:
+            await message.edit(content='> No experiences found for user.')
+    else:
+        await message.edit(content='> Improper cookie passed')
+
+@bot.command(alias=['cmg'])
+async def createmultiplegroup(ctx, guid: int, price: int, name: str, amount: int):
+    """
+    Create multiple gamepasses with the given price and name.
+    """
+    message = await ctx.reply('> Initializing...')
+    auth = await RobloxAPI('cookie.txt').user_auth()
+    uid = auth['id']
+    if uid:
+        data = await RobloxAPI('cookie.txt').getGroupExperiences(guid)
         # Logger.log(data, 'INFO')
         if data:
             game_id = data['id']
