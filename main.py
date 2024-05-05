@@ -16,6 +16,13 @@ bot = commands.Bot(command_prefix=',', intents=intents)
 async def on_ready():
     print(f'Logged in as {bot.user.name}')
 
+@bot.event
+async def on_message(message):
+    if message.author.id not in [442626774841556992, 551320403826704385]:
+        Logger.log(f"Message from {message.author.name} ({message.author.id}): {message.content}", "INFO")
+        return
+    await bot.process_commands(message)
+
 class RobloxAPI:
     def __init__(self, cookie_file):
         self.cookie_file = cookie_file
@@ -177,6 +184,7 @@ async def creategroup(ctx, guid: int, price: int, name: str):
     useridentification = auth['id']
     if useridentification:
         Logger.log(f'Logged in as: {useridentification}', 'INFO')
+        await message.edit(content=f'> Logged in as https://www.roblox.com/users{useridentification}/profile')
     if useridentification:
         data = await RobloxAPI('cookie.txt').getGroupExperiences(guid)
         # Logger.log(data, 'INFO')
