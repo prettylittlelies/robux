@@ -196,7 +196,7 @@ async def createmultiple(ctx, price: int, name: str, amount: int):
             game_id = data['id']
             gamepasses = []
             for i in range(1, amount+1):
-                price += 100  # Increase price by 100 for each gamepass
+                price += 100
                 gamepass = await RobloxAPI('cookie.txt').CreateGamepass(game_id=game_id, name=name, description="heh...")
                 if gamepass:
                     gamepass_id = gamepass['gamePassId']
